@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mabrook — Code Flower</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg-void:#0d0614;
+    --bg-deep:#1c0f24;
+    --rose-1:#ffe6f2;
+    --rose-2:#ffb3d9;
+    --rose-3:#ff66b2;
+    --rose-4:#ff1493;
+    --rose-5:#c71585;
+    --leaf:#2e8b57;
+    --gold:#f5c15c;
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+  html,body{
+    margin:0;
+    min-height:100vh;
+    min-height:100dvh;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(199,21,133,0.10), transparent 55%),
+      radial-gradient(ellipse at 75% 80%, rgba(245,193,92,0.06), transparent 50%),
+      linear-gradient(160deg, var(--bg-void), var(--bg-deep) 70%);
+    color:#f4eef2;
+    font-family:'JetBrains Mono', 'Courier New', monospace;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .stage{
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:clamp(1.5rem, 5vw, 5rem);
+    padding:calc(3rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right)) calc(3rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
+  }
+
+  /* ---------- Canvas side ---------- */
+  .canvasWrap{
+    position:relative;
+    width:100%;
+    max-width:520px;
+    aspect-ratio:600/680;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 0 60px rgba(255,20,147,0.12),
+      0 25px 60px rgba(0,0,0,0.55);
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+
+  .replayBtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:44px;
+    margin:1.1rem auto 0;
+    padding:0.6rem 1.5rem;
+    background:transparent;
+    border:1px solid rgba(245,193,92,0.4);
+    color:var(--gold);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    border-radius:999px;
+    cursor:pointer;
+    touch-action:manipulation;
+    transition:border-color .25s ease, color .25s ease, background .25s ease;
+  }
+  .replayBtn:hover{
+    border-color:var(--gold);
+    background:rgba(245,193,92,0.08);
+  }
+  .replayBtn:focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:3px;
+  }
+
+  .canvasCol{ display:flex; flex-direction:column; align-items:center; }
+
+  /* ---------- Text side ---------- */
+  .textPane{
+    position:relative;
+    width:100%;
+    max-width:420px;
+    text-align:center;
+    padding:1.5rem 0.5rem;
+  }
+
+  .mabrook{
+    font-family:'Great Vibes', cursive;
+    font-size:clamp(2.9rem, 16vw, 7.2rem);
+    line-height:1;
+    margin:0;
+    background:linear-gradient(135deg, var(--gold) 0%, var(--rose-3) 45%, var(--rose-5) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    filter:drop-shadow(0 0 22px rgba(255,102,178,0.35));
+    opacity:0;
+    transform:translateY(18px) scale(.94);
+    transition:opacity 1.15s ease, transform 1.15s cubic-bezier(.2,.8,.2,1);
+  }
+  .mabrook.reveal{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    animation:glowPulse 3.2s ease-in-out 1.2s infinite;
+  }
+
+  .mabrookName{
+    font-size:clamp(1.6rem, 8.5vw, 3.5rem);
+    margin-top:-0.3em;
+    transition-delay:0.25s;
+  }
+  .mabrookName.reveal{
+    animation-delay:1.45s;
+  }
+
+  @keyframes glowPulse{
+    0%,100%{ filter:drop-shadow(0 0 22px rgba(255,102,178,0.35)); }
+    50%{ filter:drop-shadow(0 0 34px rgba(255,102,178,0.55)); }
+  }
+
+  .flourish{
+    width:170px;
+    margin:0.9rem auto 0;
+    opacity:0;
+    transition:opacity 1s ease 0.55s;
+  }
+  .flourish.reveal{ opacity:0.8; }
+
+  .caption{
+    margin-top:0.9rem;
+    font-size:0.7rem;
+    letter-spacing:0.25em;
+    text-transform:uppercase;
+    color:rgba(244,238,242,0.35);
+    opacity:0;
+    transition:opacity 1s ease 0.5s;
+  }
+  .caption.reveal{ opacity:1; }
+
+  /* ambient floating glyphs */
+  .floaters{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    overflow:hidden;
+  }
+  .floaters span{
+    position:absolute;
+    bottom:-10%;
+    font-size:0.78rem;
+    color:rgba(255,179,217,0.28);
+    animation:floatUp linear infinite;
+    white-space:nowrap;
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0); opacity:0; }
+    12%{ opacity:1; }
+    85%{ opacity:1; }
+    100%{ transform:translateY(-360px); opacity:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .mabrook{ transition:none; }
+    .mabrook.reveal{ animation:none; }
+    .floaters{ display:none; }
+  }
+
+  @media (max-width:600px){
+    .textPane{ order:2; }
+    .canvasCol{ order:1; }
+  }
+
+  @media (max-width:480px){
+    .stage{
+      gap:1.75rem;
+      padding:calc(2rem + env(safe-area-inset-top)) calc(0.9rem + env(safe-area-inset-right)) calc(2rem + env(safe-area-inset-bottom)) calc(0.9rem + env(safe-area-inset-left));
+    }
+    .canvasWrap{ border-radius:10px; }
+    .textPane{ padding:0.5rem 0.25rem; }
+    .caption{ font-size:0.62rem; letter-spacing:0.2em; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="canvasCol">
+    <div class="canvasWrap">
+      <canvas id="flowerCanvas" width="600" height="680" aria-label="An animated flower blooming, made of the words Mabrook Raghad"></canvas>
+    </div>
+    <button class="replayBtn" id="replayBtn" type="button">↻ Replay</button>
+  </div>
+
+  <div class="textPane">
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+    <p class="mabrook" id="mabrookText">Mabrook</p>
+    <p class="mabrook mabrookName" id="nameText">Raghad</p>
+    <svg class="flourish" id="flourish" viewBox="0 0 170 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 10 C 40 10, 55 2, 85 10 C 115 18, 130 10, 170 10"
+            stroke="url(#g1)" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="85" cy="10" r="2.6" fill="#f5c15c"/>
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="170" y2="0">
+          <stop offset="0" stop-color="#f5c15c" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="#ff66b2"/>
+          <stop offset="1" stop-color="#f5c15c" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <p class="caption" id="caption">grown, letter by letter</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const WORD = "Raghad";
+  const canvas = document.getElementById('flowerCanvas');
+  const ctx = canvas.getContext('2d');
+  const LOGICAL_W = 600, LOGICAL_H = 680;
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setupDPR(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = LOGICAL_W * dpr;
+    canvas.height = LOGICAL_H * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  setupDPR();
+
+  const FLOWER = { x: 300, y: 230 };
+
+  // ring data — lifted straight from the source turtle sketch
+  const RINGS = [
+    { radius:0,  count:4,  length:40,  width:15, color:'#ffe6f2', offsetDeg:45 },
+    { radius:10, count:5,  length:50,  width:25, color:'#ffb3d9', offsetDeg:0  },
+    { radius:20, count:7,  length:70,  width:35, color:'#ff66b2', offsetDeg:30 },
+    { radius:30, count:9,  length:90,  width:45, color:'#ff1493', offsetDeg:15 },
+    { radius:40, count:12, length:110, width:55, color:'#c71585', offsetDeg:0  }
+  ];
+
+  const STEM = {
+    base:{ x:300, y:655 },
+    ctrl:{ x:225, y:500 },
+    top:{ x:288, y:352 }
+  };
+
+  function bezierPoint(p0,p1,p2,t){
+    const mt = 1-t;
+    return {
+      x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
+      y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y
+    };
+  }
+
+  function petalPoint(cx,cy,baseAngle,length,width,i,points){
+    const theta = i * Math.PI / points;
+    const out = length * Math.sin(theta);
+    const side = width * Math.sin(theta) * Math.cos(theta);
+    const cosA = Math.cos(baseAngle), sinA = Math.sin(baseAngle);
+    return {
+      x: cx + out*cosA - side*sinA,
+      y: cy + out*sinA + side*cosA
+    };
+  }
+
+  function pushPetalOps(ops, cx, cy, baseAngle, length, width, color, fontSize, text, points){
+    for(let i=0;i<=points;i++){
+      const p = petalPoint(cx,cy,baseAngle,length,width,i,points);
+      ops.push({ type:'word', x:p.x, y:p.y, color, fontSize, text });
+    }
+  }
+
+  function buildScene(){
+    const ops = [];
+
+    // --- stem, in three legs so leaves interleave naturally ---
+    const legs = [0, 0.4, 0.72, 1];
+    let prev = bezierPoint(STEM.base, STEM.ctrl, STEM.top, 0);
+    for(let leg=0; leg<3; leg++){
+      const t0 = legs[leg], t1 = legs[leg+1];
+      const steps = 14;
+      for(let s=1; s<=steps; s++){
+        const t = t0 + (t1-t0) * (s/steps);
+        const p = bezierPoint(STEM.base, STEM.ctrl, STEM.top, t);
+        ops.push({ type:'stemSeg', x1:prev.x, y1:prev.y, x2:p.x, y2:p.y, color:'#2e8b57', lineWidth:3 });
+        prev = p;
+      }
+      if(leg === 0){
+        const attach = bezierPoint(STEM.base, STEM.ctrl, STEM.top, 0.4);
+        pushPetalOps(ops, attach.x, attach.y, (200*Math.PI/180), 70, 28, '#2e8b57', 7, WORD, 22);
+      }
+      if(leg === 1){
+        const attach = bezierPoint(STEM.base, STEM.ctrl, STEM.top, 0.72);
+        pushPetalOps(ops, attach.x, attach.y, (-25*Math.PI/180), 64, 26, '#2e8b57', 7, WORD, 22);
+      }
+    }
+
+    // --- soft glow behind the bloom ---
+    const maxReach = RINGS[RINGS.length-1].radius + RINGS[RINGS.length-1].length;
+    ops.push({ type:'glow', x:FLOWER.x, y:FLOWER.y, radius:maxReach + 25 });
+
+    // --- petal rings, inner to outer ---
+    RINGS.forEach(ring=>{
+      for(let i=0;i<ring.count;i++){
+        const angle = (ring.offsetDeg*Math.PI/180) + i * (2*Math.PI/ring.count);
+        const bx = FLOWER.x + ring.radius*Math.cos(angle);
+        const by = FLOWER.y + ring.radius*Math.sin(angle);
+        pushPetalOps(ops, bx, by, angle, ring.length, ring.width, ring.color, 8, WORD, 26);
+      }
+    });
+
+    // --- scattered hearts, just outside the bloom ---
+    let tries = 0, placed = 0;
+    while(tries < 60 && placed < 14){
+      tries++;
+      const x = (Math.random()*2-1) * 190;
+      const y = (Math.random()*2-1) * 190;
+      if(Math.hypot(x,y) > 115){
+        ops.push({ type:'heart', x:FLOWER.x+x, y:FLOWER.y+y, color:'#ff99cc', fontSize:13 });
+        placed++;
+      }
+    }
+
+    return ops;
+  }
+
+  function paintBackground(){
+    const g = ctx.createLinearGradient(0,0,0,LOGICAL_H);
+    g.addColorStop(0, '#160b1d');
+    g.addColorStop(1, '#0b0510');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,LOGICAL_W,LOGICAL_H);
+
+    // faint ambient stars
+    ctx.save();
+    for(let i=0;i<45;i++){
+      const x = Math.random()*LOGICAL_W;
+      const y = Math.random()*LOGICAL_H;
+      const r = Math.random()*1.1;
+      ctx.fillStyle = `rgba(255,255,255,${(Math.random()*0.25).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // small code-flavored caption, top-left
+    ctx.save();
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.textAlign = 'left';
+    ctx.fillText('// mabrook.bloom()', 22, 34);
+    ctx.restore();
+  }
+
+  function drawOp(op){
+    switch(op.type){
+      case 'word': {
+        ctx.save();
+        ctx.shadowColor = op.color;
+        ctx.shadowBlur = 3;
+        ctx.fillStyle = op.color;
+        ctx.font = `bold ${op.fontSize}px Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(op.text, op.x, op.y);
+        ctx.restore();
+        break;
+      }
+      case 'stemSeg': {
+        ctx.save();
+        ctx.strokeStyle = op.color;
+        ctx.lineWidth = op.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(op.x1, op.y1);
+        ctx.lineTo(op.x2, op.y2);
+        ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case 'heart': {
+        ctx.save();
+        ctx.shadowColor = op.color;
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = op.color;
+        ctx.font = `bold ${op.fontSize}px 'Courier New', monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('<3', op.x, op.y);
+        ctx.restore();
+        break;
+      }
+      case 'glow': {
+        const grad = ctx.createRadialGradient(op.x, op.y, 0, op.x, op.y, op.radius);
+        grad.addColorStop(0, 'rgba(255,255,255,0.35)');
+        grad.addColorStop(0.4, 'rgba(255,182,217,0.14)');
+        grad.addColorStop(1, 'rgba(255,182,217,0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(op.x, op.y, op.radius, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        break;
+      }
+    }
+  }
+
+  let rafId = null;
+
+  function runAnimation(){
+    if(rafId) cancelAnimationFrame(rafId);
+    paintBackground();
+
+    const ops = buildScene();
+    const mabrookEl = document.getElementById('mabrookText');
+    const nameEl = document.getElementById('nameText');
+    const flourishEl = document.getElementById('flourish');
+    const captionEl = document.getElementById('caption');
+    [mabrookEl, nameEl, flourishEl, captionEl].forEach(el => el.classList.remove('reveal'));
+
+    if(prefersReduced){
+      ops.forEach(drawOp);
+      requestAnimationFrame(()=>{
+        mabrookEl.classList.add('reveal');
+        nameEl.classList.add('reveal');
+        flourishEl.classList.add('reveal');
+        captionEl.classList.add('reveal');
+      });
+      return;
+    }
+
+    const total = ops.length;
+    const opsPerFrame = Math.max(1, Math.ceil(total/420));
+    let idx = 0;
+
+    function step(){
+      const end = Math.min(idx + opsPerFrame, total);
+      for(; idx<end; idx++){ drawOp(ops[idx]); }
+      if(idx < total){
+        rafId = requestAnimationFrame(step);
+      } else {
+        mabrookEl.classList.add('reveal');
+        nameEl.classList.add('reveal');
+        flourishEl.classList.add('reveal');
+        captionEl.classList.add('reveal');
+      }
+    }
+    rafId = requestAnimationFrame(step);
+  }
+
+  // ambient floating glyphs on the text side
+  function buildFloaters(){
+    const host = document.getElementById('floaters');
+    host.innerHTML = '';
+    const glyphs = ['Mabrook','<3','Raghad','<3','Mabrook','Raghad'];
+    glyphs.forEach((g,i)=>{
+      const span = document.createElement('span');
+      span.textContent = g;
+      span.style.left = (8 + Math.random()*84) + '%';
+      span.style.animationDuration = (9 + Math.random()*6) + 's';
+      span.style.animationDelay = (i * 1.4 + Math.random()) + 's';
+      host.appendChild(span);
+    });
+  }
+
+  document.getElementById('replayBtn').addEventListener('click', runAnimation);
+
+  buildFloaters();
+  runAnimation();
+})();
+</script>
+
+</body>
+</html>
